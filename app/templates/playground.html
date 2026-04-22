@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mi Mercado Global — API Playground</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #22263a;
+      --border: #2e3350;
+      --accent: #6c63ff;
+      --accent2: #a78bfa;
+      --green: #22c55e;
+      --red: #ef4444;
+      --yellow: #f59e0b;
+      --blue: #3b82f6;
+      --text: #e2e8f0;
+      --muted: #64748b;
+      --radius: 8px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── Header ─────────────────────────────────────────── */
+    header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 24px;
+      height: 56px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    header .logo { font-size: 18px; font-weight: 700; color: var(--accent2); }
+    header .tag {
+      font-size: 11px;
+      background: var(--accent);
+      color: #fff;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-weight: 600;
+      letter-spacing: .5px;
+    }
+    header .base-url {
+      margin-left: auto;
+      font-size: 12px;
+      color: var(--muted);
+      font-family: monospace;
+    }
+    #base-url-input {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 4px 10px;
+      border-radius: var(--radius);
+      font-size: 12px;
+      font-family: monospace;
+      width: 240px;
+    }
+
+    /* ── Layout ──────────────────────────────────────────── */
+    .layout {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ─────────────────────────────────────────── */
+    aside {
+      width: 280px;
+      flex-shrink: 0;
+      background: var(--surface);
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      padding: 12px 0;
+    }
+    .group-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--muted);
+      padding: 16px 16px 6px;
+    }
+    .ep-btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 9px 16px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text);
+      text-align: left;
+      transition: background .15s;
+      font-size: 13px;
+    }
+    .ep-btn:hover { background: var(--surface2); }
+    .ep-btn.active { background: var(--surface2); border-left: 3px solid var(--accent); }
+    .method {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+      flex-shrink: 0;
+      min-width: 38px;
+      text-align: center;
+      letter-spacing: .3px;
+    }
+    .GET    { background: #164e63; color: #67e8f9; }
+    .POST   { background: #14532d; color: #86efac; }
+    .ep-path { font-family: monospace; font-size: 12px; color: var(--text); }
+
+    /* ── Main panel ──────────────────────────────────────── */
+    main {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* ── Form panel ──────────────────────────────────────── */
+    .form-panel {
+      width: 420px;
+      flex-shrink: 0;
+      padding: 24px;
+      overflow-y: auto;
+      border-right: 1px solid var(--border);
+    }
+    .panel-title {
+      font-size: 16px;
+      font-weight: 700;
+      margin-bottom: 4px;
+      color: var(--accent2);
+    }
+    .panel-desc {
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .8px;
+      color: var(--muted);
+      margin: 16px 0 8px;
+    }
+    .field { margin-bottom: 12px; }
+    .field label {
+      display: block;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .field label span { color: var(--red); }
+    .field input, .field select, .field textarea {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 8px 12px;
+      border-radius: var(--radius);
+      font-size: 13px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color .15s;
+    }
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus { border-color: var(--accent); }
+    .field textarea { resize: vertical; min-height: 80px; font-family: monospace; font-size: 12px; }
+
+    .send-btn {
+      margin-top: 20px;
+      width: 100%;
+      padding: 10px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .15s;
+    }
+    .send-btn:hover { opacity: .85; }
+    .send-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+    /* ── Response panel ──────────────────────────────────── */
+    .response-panel {
+      flex: 1;
+      padding: 24px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+    .response-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .response-header h3 { font-size: 14px; font-weight: 600; }
+    .status-badge {
+      font-size: 12px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+    }
+    .status-2xx { background: #14532d; color: #86efac; }
+    .status-4xx { background: #7f1d1d; color: #fca5a5; }
+    .status-5xx { background: #451a03; color: #fdba74; }
+    .status-pending { background: var(--surface2); color: var(--muted); }
+    .time-badge {
+      font-size: 11px;
+      color: var(--muted);
+      margin-left: auto;
+    }
+    .cache-hit  { background: #1e3a5f; color: #60a5fa; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; letter-spacing: .5px; }
+    .cache-miss { background: #3b1f00; color: #fb923c; font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; letter-spacing: .5px; }
+    pre {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+      font-size: 12.5px;
+      line-height: 1.6;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: var(--text);
+    }
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      gap: 8px;
+      font-size: 14px;
+    }
+    .empty-state svg { opacity: .3; }
+
+    .url-preview {
+      font-family: monospace;
+      font-size: 11px;
+      color: var(--muted);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      padding: 6px 10px;
+      border-radius: var(--radius);
+      margin-bottom: 16px;
+      word-break: break-all;
+    }
+
+    /* syntax highlight */
+    .json-key    { color: #c084fc; }
+    .json-str    { color: #86efac; }
+    .json-num    { color: #fb923c; }
+    .json-bool   { color: #38bdf8; }
+    .json-null   { color: #94a3b8; }
+
+    /* scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    .placeholder-msg {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--muted);
+      font-size: 14px;
+      flex-direction: column;
+      gap: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <span class="logo">Mi Mercado Global</span>
+  <span class="tag">API Playground</span>
+  <div class="base-url">
+    Base URL: <input id="base-url-input" value="http://localhost:8080" />
+  </div>
+</header>
+
+<div class="layout">
+  <!-- Sidebar -->
+  <aside id="sidebar"></aside>
+
+  <!-- Main -->
+  <main>
+    <div class="form-panel" id="form-panel">
+      <div class="placeholder-msg">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
+        </svg>
+        Selecciona un endpoint del panel izquierdo
+      </div>
+    </div>
+    <div class="response-panel" id="response-panel">
+      <div class="empty-state">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+          <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
+        </svg>
+        La respuesta aparecerá aquí
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ── Endpoint definitions ─────────────────────────────────────────────────────
+const ENDPOINTS = [
+  {
+    group: 'Sistema',
+    id: 'health',
+    method: 'GET',
+    path: '/health/',
+    label: 'Estado del sistema',
+    desc: 'Verifica la conectividad con DynamoDB y Redis.',
+    pathParams: [],
+    queryParams: [],
+    body: null,
+  },
+  {
+    group: 'Usuarios',
+    id: 'usuario-create',
+    method: 'POST',
+    path: '/usuarios/',
+    label: 'Crear usuario',
+    desc: 'Crea el perfil de un nuevo usuario en DynamoDB.',
+    pathParams: [],
+    queryParams: [],
+    body: [
+      { name: 'userId',    label: 'userId',    type: 'text',   placeholder: 'usr-001',        required: true  },
+      { name: 'nombre',    label: 'nombre',    type: 'text',   placeholder: 'Juan Narváez',   required: true  },
+      { name: 'email',     label: 'email',     type: 'email',  placeholder: 'juan@mail.com',  required: true  },
+      { name: 'direccion', label: 'direccion', type: 'text',   placeholder: 'Calle 123, Bogotá', required: false },
+    ],
+  },
+  {
+    group: 'Usuarios',
+    id: 'usuario-get',
+    method: 'GET',
+    path: '/usuarios/{userId}/',
+    label: 'Obtener perfil',
+    desc: 'Devuelve el perfil de un usuario. Usa cache-aside (Redis → DynamoDB).',
+    pathParams: [
+      { name: 'userId', label: 'userId', placeholder: 'usr-001' },
+    ],
+    queryParams: [],
+    body: null,
+  },
+  {
+    group: 'Pedidos',
+    id: 'pedido-create',
+    method: 'POST',
+    path: '/pedidos/',
+    label: 'Crear pedido',
+    desc: 'Crea un pedido. Escribe ítems ORDER# y STATUS# (dual-write).',
+    pathParams: [],
+    queryParams: [],
+    body: [
+      { name: 'userId', label: 'userId', type: 'text', placeholder: 'usr-001', required: true },
+      { name: 'total',  label: 'total',  type: 'number', placeholder: '149.99', required: true },
+      { name: 'estado', label: 'estado', type: 'select', options: ['pendiente','enviado','entregado','cancelado'], required: true },
+    ],
+  },
+  {
+    group: 'Pedidos',
+    id: 'pedido-by-id',
+    method: 'GET',
+    path: '/pedidos/{pedidoId}/',
+    label: 'Obtener pedido por ID',
+    desc: 'Obtiene un pedido usando solo su ID. Usa cache-aside (Redis → DynamoDB). Ideal para demostrar HIT/MISS.',
+    pathParams: [
+      { name: 'pedidoId', label: 'pedidoId', placeholder: 'ord-7f3a1b' },
+    ],
+    queryParams: [],
+    body: null,
+  },
+  {
+    group: 'Pedidos',
+    id: 'pedido-list',
+    method: 'GET',
+    path: '/usuarios/{userId}/pedidos/',
+    label: 'Listar pedidos',
+    desc: 'Sin filtros devuelve todos los pedidos. Con ?estado= filtra por estado. Con ?desde=&hasta= filtra por rango de fechas (YYYY-MM-DD).',
+    pathParams: [
+      { name: 'userId', label: 'userId', placeholder: 'usr-001' },
+    ],
+    queryParams: [
+      { name: 'estado', label: 'estado (opcional)', placeholder: 'pendiente' },
+      { name: 'desde',  label: 'desde (opcional)',  placeholder: '2026-01-01' },
+      { name: 'hasta',  label: 'hasta (opcional)',  placeholder: '2026-12-31' },
+    ],
+    body: null,
+  },
+  {
+    group: 'Pedidos',
+    id: 'pedido-get',
+    method: 'GET',
+    path: '/usuarios/{userId}/pedidos/{fecha}/{pedidoId}/',
+    label: 'Obtener pedido',
+    desc: 'Obtiene un pedido específico por userId, fecha y pedidoId.',
+    pathParams: [
+      { name: 'userId',   label: 'userId',   placeholder: 'usr-001' },
+      { name: 'fecha',    label: 'fecha',    placeholder: '2026-04-07' },
+      { name: 'pedidoId', label: 'pedidoId', placeholder: 'ord-7f3a1b' },
+    ],
+    queryParams: [],
+    body: null,
+  },
+  {
+    group: 'Items',
+    id: 'item-create',
+    method: 'POST',
+    path: '/pedidos/{pedidoId}/items/',
+    label: 'Agregar ítem',
+    desc: 'Agrega un ítem al pedido. Invalida la caché de ítems del pedido.',
+    pathParams: [
+      { name: 'pedidoId', label: 'pedidoId', placeholder: 'ord-7f3a1b' },
+    ],
+    queryParams: [],
+    body: [
+      { name: 'productId',       label: 'productId',       type: 'text',   placeholder: 'prod-001',           required: true  },
+      { name: 'nombre_producto', label: 'nombre_producto', type: 'text',   placeholder: 'Audífonos Bluetooth', required: true  },
+      { name: 'cantidad',        label: 'cantidad',        type: 'number', placeholder: '2',                  required: true  },
+      { name: 'precio',          label: 'precio',          type: 'number', placeholder: '59.99',              required: true  },
+    ],
+  },
+  {
+    group: 'Items',
+    id: 'item-list',
+    method: 'GET',
+    path: '/pedidos/{pedidoId}/items/',
+    label: 'Listar ítems',
+    desc: 'Lista los ítems de un pedido. Usa cache-aside (Redis → DynamoDB).',
+    pathParams: [
+      { name: 'pedidoId', label: 'pedidoId', placeholder: 'ord-7f3a1b' },
+    ],
+    queryParams: [],
+    body: null,
+  },
+];
+
+// ── State ────────────────────────────────────────────────────────────────────
+let activeId = null;
+
+// ── Build sidebar ────────────────────────────────────────────────────────────
+function buildSidebar() {
+  const aside = document.getElementById('sidebar');
+  const groups = [...new Set(ENDPOINTS.map(e => e.group))];
+  groups.forEach(g => {
+    const label = document.createElement('div');
+    label.className = 'group-label';
+    label.textContent = g;
+    aside.appendChild(label);
+
+    ENDPOINTS.filter(e => e.group === g).forEach(ep => {
+      const btn = document.createElement('button');
+      btn.className = 'ep-btn';
+      btn.dataset.id = ep.id;
+      btn.innerHTML = `
+        <span class="method ${ep.method}">${ep.method}</span>
+        <span class="ep-path">${ep.path.replace(/\{[^}]+\}/g, m => `<span style="color:var(--accent2)">${m}</span>`)}</span>
+      `;
+      btn.addEventListener('click', () => selectEndpoint(ep.id));
+      aside.appendChild(btn);
+    });
+  });
+}
+
+// ── Select endpoint ──────────────────────────────────────────────────────────
+function selectEndpoint(id) {
+  activeId = id;
+  document.querySelectorAll('.ep-btn').forEach(b => b.classList.toggle('active', b.dataset.id === id));
+  const ep = ENDPOINTS.find(e => e.id === id);
+  renderForm(ep);
+  renderEmptyResponse();
+}
+
+// ── Render form ──────────────────────────────────────────────────────────────
+function renderForm(ep) {
+  const panel = document.getElementById('form-panel');
+
+  let html = `
+    <div class="panel-title">${ep.label}</div>
+    <div class="panel-desc">${ep.desc}</div>
+    <div class="url-preview" id="url-preview">${getBaseUrl()}${ep.path}</div>
+    <form id="ep-form" onsubmit="return false;">
+  `;
+
+  if (ep.pathParams.length) {
+    html += `<div class="section-label">Path params</div>`;
+    ep.pathParams.forEach(p => {
+      html += fieldHtml(p.name, p.label, 'text', p.placeholder, true, 'path');
+    });
+  }
+
+  if (ep.queryParams.length) {
+    html += `<div class="section-label">Query params</div>`;
+    ep.queryParams.forEach(p => {
+      html += fieldHtml(p.name, p.label, 'text', p.placeholder, false, 'query');
+    });
+  }
+
+  if (ep.body) {
+    html += `<div class="section-label">Body (JSON)</div>`;
+    ep.body.forEach(p => {
+      if (p.type === 'select') {
+        html += selectFieldHtml(p.name, p.label, p.options, p.required);
+      } else {
+        html += fieldHtml(p.name, p.label, p.type, p.placeholder, p.required, 'body');
+      }
+    });
+  }
+
+  html += `
+      <button type="submit" class="send-btn" id="send-btn">
+        Enviar solicitud
+      </button>
+    </form>
+  `;
+
+  panel.innerHTML = html;
+
+  // live URL preview
+  panel.querySelectorAll('input[data-group="path"], input[data-group="query"]').forEach(inp => {
+    inp.addEventListener('input', () => updateUrlPreview(ep));
+  });
+
+  document.getElementById('ep-form').addEventListener('submit', () => sendRequest(ep));
+}
+
+function fieldHtml(name, label, type, placeholder, required, group) {
+  return `
+    <div class="field">
+      <label>${label}${required ? ' <span>*</span>' : ''}</label>
+      <input type="${type}" name="${name}" placeholder="${placeholder}" data-group="${group}" ${required ? 'required' : ''} />
+    </div>
+  `;
+}
+
+function selectFieldHtml(name, label, options, required) {
+  const opts = options.map(o => `<option value="${o}">${o}</option>`).join('');
+  return `
+    <div class="field">
+      <label>${label}${required ? ' <span>*</span>' : ''}</label>
+      <select name="${name}" data-group="body">${opts}</select>
+    </div>
+  `;
+}
+
+// ── URL preview ──────────────────────────────────────────────────────────────
+function updateUrlPreview(ep) {
+  const form = document.getElementById('ep-form');
+  let url = ep.path;
+  ep.pathParams.forEach(p => {
+    const val = form.querySelector(`input[name="${p.name}"]`)?.value || `{${p.name}}`;
+    url = url.replace(`{${p.name}}`, val);
+  });
+  const qs = [];
+  ep.queryParams.forEach(p => {
+    const val = form.querySelector(`input[name="${p.name}"]`)?.value;
+    if (val) qs.push(`${p.name}=${encodeURIComponent(val)}`);
+  });
+  if (qs.length) url += '?' + qs.join('&');
+  document.getElementById('url-preview').textContent = getBaseUrl() + url;
+}
+
+// ── Send request ─────────────────────────────────────────────────────────────
+async function sendRequest(ep) {
+  const form = document.getElementById('ep-form');
+  const btn  = document.getElementById('send-btn');
+
+  // Build URL
+  let url = ep.path;
+  ep.pathParams.forEach(p => {
+    const val = form.querySelector(`input[name="${p.name}"]`)?.value;
+    url = url.replace(`{${p.name}}`, encodeURIComponent(val || ''));
+  });
+  const qs = [];
+  ep.queryParams.forEach(p => {
+    const val = form.querySelector(`input[name="${p.name}"]`)?.value;
+    if (val) qs.push(`${p.name}=${encodeURIComponent(val)}`);
+  });
+  if (qs.length) url += '?' + qs.join('&');
+  const fullUrl = getBaseUrl() + url;
+
+  // Build body
+  let bodyObj = null;
+  if (ep.body) {
+    bodyObj = {};
+    ep.body.forEach(p => {
+      const el = form.querySelector(`[name="${p.name}"]`);
+      if (!el) return;
+      let val = el.value;
+      if (p.type === 'number') val = val !== '' ? Number(val) : undefined;
+      if (val !== undefined && val !== '') bodyObj[p.name] = val;
+    });
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Enviando…';
+  const t0 = Date.now();
+
+  try {
+    const opts = {
+      method: ep.method,
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+    };
+    if (bodyObj) opts.body = JSON.stringify(bodyObj);
+
+    const res = await fetch(fullUrl, opts);
+    const elapsed = Date.now() - t0;
+    let data;
+    try { data = await res.json(); } catch { data = null; }
+
+    renderResponse(res.status, data, elapsed, fullUrl, ep.method, res.headers);
+  } catch (err) {
+    renderErrorResponse(err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Enviar solicitud';
+  }
+}
+
+// ── Render response ──────────────────────────────────────────────────────────
+function renderEmptyResponse() {
+  document.getElementById('response-panel').innerHTML = `
+    <div class="empty-state">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
+        <circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/>
+      </svg>
+      La respuesta aparecerá aquí
+    </div>`;
+}
+
+function renderResponse(statusCode, data, elapsed, url, method, headers) {
+  const cls = statusCode < 300 ? 'status-2xx' : statusCode < 500 ? 'status-4xx' : 'status-5xx';
+  const xcache = headers.get('x-cache');
+  let cacheBadge = '';
+  if (xcache === 'HIT') {
+    cacheBadge = `<span class="cache-hit" title="Datos servidos desde Redis">CACHE HIT</span>`;
+  } else if (xcache === 'MISS') {
+    cacheBadge = `<span class="cache-miss" title="Datos obtenidos desde DynamoDB y guardados en Redis">CACHE MISS</span>`;
+  }
+  const panel = document.getElementById('response-panel');
+  panel.innerHTML = `
+    <div class="response-header">
+      <h3>Respuesta</h3>
+      <span class="status-badge ${cls}">${statusCode}</span>
+      ${cacheBadge}
+      <span class="time-badge">${elapsed} ms</span>
+    </div>
+    <div class="url-preview" style="margin-bottom:12px">
+      <span style="color:var(--accent2)">${method}</span> ${url}
+    </div>
+    <pre id="response-pre">${highlight(data)}</pre>
+  `;
+}
+
+function renderErrorResponse(msg) {
+  const panel = document.getElementById('response-panel');
+  panel.innerHTML = `
+    <div class="response-header">
+      <h3>Respuesta</h3>
+      <span class="status-badge status-5xx">Error de red</span>
+    </div>
+    <pre style="color:var(--red)">${escHtml(msg)}</pre>
+  `;
+}
+
+// ── JSON syntax highlight ────────────────────────────────────────────────────
+function highlight(obj) {
+  if (obj === null) return '<span class="json-null">null</span>';
+  const raw = JSON.stringify(obj, null, 2);
+  return raw
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"([^"]+)":/g, '<span class="json-key">"$1"</span>:')
+    .replace(/: "([^"]*)"/g, ': <span class="json-str">"$1"</span>')
+    .replace(/: (-?\d+\.?\d*)/g, ': <span class="json-num">$1</span>')
+    .replace(/: (true|false)/g, ': <span class="json-bool">$1</span>')
+    .replace(/: null/g, ': <span class="json-null">null</span>');
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function getBaseUrl() {
+  return document.getElementById('base-url-input').value.replace(/\/$/, '');
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+buildSidebar();
+</script>
+</body>
+</html>
