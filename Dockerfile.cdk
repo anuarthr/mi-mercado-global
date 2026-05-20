@@ -1,0 +1,19 @@
+FROM python:3.12-slim
+
+RUN apt-get update && apt-get install -y curl docker.io && \
+    curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && \
+    apt-get install -y nodejs && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN npm install -g aws-cdk aws-cdk-local
+
+COPY infra/requirements.txt /tmp/cdk-requirements.txt
+RUN pip install --no-cache-dir -r /tmp/cdk-requirements.txt
+
+RUN mkdir -p /root/.aws && \
+    printf '[default]\naws_access_key_id = test\naws_secret_access_key = test\n' > /root/.aws/credentials && \
+    printf '[default]\nregion = us-east-1\noutput = json\n' > /root/.aws/config
+
+WORKDIR /workspace
+
+CMD ["bash"]

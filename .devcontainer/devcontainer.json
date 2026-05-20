@@ -1,0 +1,14 @@
+{
+  "name": "Mi Mercado CDK",
+  "dockerComposeFile": "../docker-compose.yml",
+  "service": "cdk_env",
+  "workspaceFolder": "/workspace",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "amazonwebservices.aws-toolkit-vscode"
+      ]
+    }
+  }
+}
