@@ -13,6 +13,7 @@ class PedidoByIdView(APIView):
                 {'error': 'Pedido no encontrado'},
                 status=status.HTTP_404_NOT_FOUND,
             )
+
         response = Response(pedido)
         response['X-Cache'] = 'HIT' if cache_hit else 'MISS'
         return response
@@ -34,14 +35,21 @@ class PedidoListView(APIView):
         desde = request.query_params.get('desde')
         hasta = request.query_params.get('hasta')
 
+        cache_hit = False
+
         if estado:
             pedidos = services.listar_pedidos_por_estado(user_id, estado)
         elif desde and hasta:
             pedidos = services.listar_pedidos_por_rango(user_id, desde, hasta)
         else:
-            pedidos = services.listar_pedidos(user_id)
+            pedidos, cache_hit = services.listar_pedidos(user_id)
 
-        return Response(pedidos)
+        response = Response(pedidos)
+
+        if not estado and not (desde and hasta):
+            response['X-Cache'] = 'HIT' if cache_hit else 'MISS'
+
+        return response
 
 
 class PedidoDetailView(APIView):

@@ -24,6 +24,8 @@ def crear_pedido(data: dict) -> dict:
         'total': float(data['total']),
     }
 
+    cache_delete(f"pedidos:{data['userId']}")
+
     publish(CHANNEL_PEDIDO_CREADO, result)
     return result
 
@@ -33,11 +35,9 @@ def _parse_pedido(raw: dict, user_id: str) -> dict:
     sk = item['sk']
 
     if sk.startswith('ORDER#'):
-        # ORDER#<fecha>#<orderId>
         _, fecha, order_id = sk.split('#', 2)
         estado = item.get('estado', '')
     else:
-        # STATUS#<estado>#<fecha>#<orderId>
         _, estado, fecha, order_id = sk.split('#', 3)
 
     return {
@@ -49,9 +49,26 @@ def _parse_pedido(raw: dict, user_id: str) -> dict:
     }
 
 
-def listar_pedidos(user_id: str) -> list:
+def listar_pedidos(user_id: str) -> tuple[list, bool]:
+    """
+    AP2: listar pedidos de un usuario.
+
+    Implementa cache-aside con Redis:
+    - Clave: pedidos:{userId}
+    - Si existe en caché, retorna HIT.
+    - Si no existe, consulta DynamoDB, guarda en caché y retorna MISS.
+    """
+    key = f'pedidos:{user_id}'
+
+    cached = cache_get(key)
+    if cached is not None:
+        return cached, True
+
     items = repository.query_pedidos(user_id)
-    return [_parse_pedido(item, user_id) for item in items]
+    pedidos = [_parse_pedido(item, user_id) for item in items]
+
+    cache_set(key, pedidos)
+    return pedidos, False
 
 
 def obtener_pedido(user_id: str, fecha: str, order_id: str) -> dict | None:
@@ -80,6 +97,7 @@ def obtener_pedido_por_id(order_id: str) -> tuple[dict | None, bool]:
         'estado': item.get('estado', ''),
         'total': item.get('total', 0),
     }
+
     cache_set(key, result)
     return result, False
 
