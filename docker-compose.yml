@@ -15,6 +15,12 @@ services:
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock"
       - localstack_data:/var/lib/localstack
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:4566/_localstack/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
     networks:
       mi-mercado-net:
         aliases:
