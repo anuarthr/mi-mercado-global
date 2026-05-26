@@ -1,16 +1,7 @@
-from django.shortcuts import render
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from config import dynamodb, redis_client, TABLE_NAME
-
-
-class PlaygroundView(APIView):
-    authentication_classes = []
-    permission_classes = []
-
-    def get(self, request):
-        return render(request, 'playground.html')
 
 
 class HealthView(APIView):
