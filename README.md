@@ -159,3 +159,36 @@ Condición  : sk BETWEEN "ORDER#<desde>" AND "ORDER#<hasta>"
 Funciona porque las fechas ISO 8601 son ordenables lexicográficamente. `<desde>` y `<hasta>` son fechas en formato `YYYY-MM-DD`.
 
 ---
+
+## Decisión de caché por patrón de acceso
+
+**Patrón aplicado:** *cache-aside* (lazy loading) con **Redis 7** como motor.
+
+> **Cómo funciona:**
+> 1. La Lambda consulta primero Redis con la clave de la entidad.
+> 2. Si HIT → responde con el valor cacheado (`X-Cache: HIT`).
+> 3. Si MISS → consulta DynamoDB, guarda el resultado en Redis con TTL y responde (`X-Cache: MISS`).
+> 4. Cualquier escritura sobre la entidad invalida la clave para evitar leer datos obsoletos en la siguiente lectura.
+
+### Tabla de decisión por AP
+
+| AP | Endpoint | Operación DynamoDB | ¿Cachea? | TTL | Clave Redis | Invalidación |
+|---|---|---|---|---|---|---|
+| AP1 | `GET /usuarios/{userId}` | GetItem | ✅ Sí | 300 s | `perfil:{userId}` | `POST /usuarios/` invalida la clave del mismo `userId` |
+| AP2 | `GET /usuarios/{userId}/pedidos` (sin filtros) | Query | ✅ Sí | 300 s | `pedidos:{userId}` | `POST /pedidos/` invalida la clave del mismo `userId` |
+| AP3 | `GET /pedidos/{pedidoId}` | GetItem | ✅ Sí | 300 s | `pedido:{pedidoId}` | No requiere — el `orderId` es nuevo en cada creación |
+| AP4 | `GET /pedidos/{pedidoId}/items` | Query | ✅ Sí | 300 s | `items:{pedidoId}` | `POST /pedidos/{pedidoId}/items` invalida la clave |
+| AP5 | `GET /usuarios/{userId}/pedidos?estado=` | Query | ❌ No | — | — | Filtro esporádico — consulta directa a DynamoDB |
+| AP6 | `GET /usuarios/{userId}/pedidos?desde=&hasta=` | Query | ❌ No | — | — | Filtro esporádico — consulta directa a DynamoDB |
+
+### Por qué cachear o no
+
+- **AP1, AP3** (lecturas puntuales con `GetItem`): se cachean porque es el patrón clásico donde Redis brilla — clave estable, lectura frecuente, dato pequeño.
+- **AP2, AP4** (listas asociadas a una entidad): se cachean porque "Mis Pedidos" y "ítems del pedido" se consultan repetidamente al navegar; la invalidación es simple (un solo punto de escritura por colección).
+- **AP5, AP6** (consultas con filtros): **no** se cachean. Cada combinación de filtros generaría una clave distinta y una matriz de invalidación impráctica. Para los volúmenes de un curso, va directo a DynamoDB.
+
+### TTL único de 300 s
+
+Todas las claves usan `DEFAULT_TTL = 300` ([`lambda/shared/cache.py`](lambda/shared/cache.py)). Es un compromiso académico: lo bastante largo para que la caché tenga sentido al hacer demos, lo bastante corto para que datos huérfanos (si se nos escapara una invalidación) se auto-curen en 5 minutos.
+
+---

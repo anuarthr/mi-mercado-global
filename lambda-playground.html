@@ -264,6 +264,60 @@
     .history-cache.HIT  { color: #60a5fa; font-weight: 700; }
     .history-cache.MISS { color: #fb923c; font-weight: 700; }
     .history-elapsed { color: var(--muted); flex-shrink: 0; }
+
+    /* Welcome view (vista inicial con tabla AP→Caché) */
+    main.welcome-mode .form-panel { width: 100%; border-right: none; }
+    main.welcome-mode .response-panel { display: none; }
+    .welcome { padding: 0; }
+    .welcome-title { font-size: 22px; font-weight: 700; color: var(--accent2); margin-bottom: 6px; }
+    .welcome-sub   { font-size: 13px; color: var(--muted); margin-bottom: 20px; line-height: 1.5; }
+    .welcome-card {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 14px 16px; margin-bottom: 20px;
+      font-size: 13px; line-height: 1.6; color: var(--text);
+    }
+    .welcome-card b { color: var(--accent2); }
+    .welcome-card ol { margin: 8px 0 0 18px; color: var(--muted); }
+    .welcome-card ol li { margin-bottom: 3px; }
+    .welcome-section-title {
+      font-size: 13px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1px; color: var(--muted); margin: 8px 0 10px;
+    }
+    .ap-table {
+      width: 100%; border-collapse: collapse; font-size: 12.5px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: var(--radius); overflow: hidden;
+    }
+    .ap-table th, .ap-table td {
+      padding: 9px 10px; text-align: left; border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .ap-table th {
+      background: var(--surface); color: var(--muted);
+      font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px;
+    }
+    .ap-table tr:last-child td { border-bottom: none; }
+    .ap-table td code, .ap-table td .mono {
+      font-family: 'Cascadia Code','Fira Code','Consolas',monospace;
+      font-size: 11.5px; color: var(--accent2);
+    }
+    .ap-table .ap-id { font-weight: 700; color: #60a5fa; }
+    .ap-cache-yes { color: #86efac; font-weight: 700; }
+    .ap-cache-no  { color: #fca5a5; font-weight: 700; }
+    .ap-dash { color: var(--muted); }
+
+    /* Botón Inicio en sidebar */
+    .home-btn {
+      display: flex; align-items: center; gap: 10px; width: 100%;
+      padding: 9px 16px; background: none; border: none; cursor: pointer;
+      color: var(--text); text-align: left; transition: background .15s; font-size: 13px;
+      font-weight: 600;
+    }
+    .home-btn:hover { background: var(--surface2); }
+    .home-btn.active { background: var(--surface2); border-left: 3px solid var(--accent2); }
+    .home-btn .icon {
+      font-size: 14px; min-width: 38px; text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -274,7 +328,7 @@
   <span class="tag-lambda">Lambda + API Gateway</span>
   <div class="base-url-wrap">
     <label>Base URL:</label>
-    <input id="base-url-input" value="http://localhost:4566/restapis/7eyf9q81ql/prod/_user_request_" />
+    <input id="base-url-input" value="http://localhost:4566/restapis/x043mv9mke/prod/_user_request_" />
   </div>
 </header>
 
@@ -323,15 +377,8 @@
 
 <div class="layout">
   <aside id="sidebar"></aside>
-  <main>
-    <div class="form-panel" id="form-panel">
-      <div class="placeholder-msg">
-        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-          <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
-        </svg>
-        Selecciona un endpoint del panel izquierdo
-      </div>
-    </div>
+  <main class="welcome-mode" id="main">
+    <div class="form-panel" id="form-panel"></div>
     <div class="response-panel" id="response-panel">
       <div class="empty-state">
         <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2">
@@ -457,6 +504,19 @@ let activeId = null;
 
 function buildSidebar() {
   const aside = document.getElementById('sidebar');
+
+  // Botón Inicio (tabla de patrones de acceso)
+  const homeLabel = document.createElement('div');
+  homeLabel.className = 'group-label';
+  homeLabel.textContent = 'Inicio';
+  aside.appendChild(homeLabel);
+
+  const homeBtn = document.createElement('button');
+  homeBtn.className = 'home-btn active';
+  homeBtn.innerHTML = `<span class="icon">📋</span><span>Patrones de acceso</span>`;
+  homeBtn.addEventListener('click', showWelcome);
+  aside.appendChild(homeBtn);
+
   const groups = [...new Set(ENDPOINTS.map(e => e.group))];
   groups.forEach(g => {
     const label = document.createElement('div');
@@ -481,9 +541,83 @@ function buildSidebar() {
 
 function selectEndpoint(id) {
   activeId = id;
+  document.getElementById('main').classList.remove('welcome-mode');
+  document.querySelector('.home-btn')?.classList.remove('active');
   document.querySelectorAll('.ep-btn').forEach(b => b.classList.toggle('active', b.dataset.id === id));
   renderForm(ENDPOINTS.find(e => e.id === id));
   renderEmptyResponse();
+}
+
+// Vista inicial: tabla de patrones de acceso y decisión de caché
+const ACCESS_PATTERNS = [
+  { id: 'AP1', endpoint: 'GET /usuarios/{userId}',                          op: 'GetItem', cache: true,  ttl: '300 s', key: 'perfil:{userId}',   inv: 'POST /usuarios/' },
+  { id: 'AP2', endpoint: 'GET /usuarios/{userId}/pedidos (sin filtros)',    op: 'Query',   cache: true,  ttl: '300 s', key: 'pedidos:{userId}',  inv: 'POST /pedidos/' },
+  { id: 'AP3', endpoint: 'GET /pedidos/{pedidoId}',                         op: 'GetItem', cache: true,  ttl: '300 s', key: 'pedido:{pedidoId}', inv: '— (id nuevo)' },
+  { id: 'AP4', endpoint: 'GET /pedidos/{pedidoId}/items',                   op: 'Query',   cache: true,  ttl: '300 s', key: 'items:{pedidoId}',  inv: 'POST .../items' },
+  { id: 'AP5', endpoint: 'GET /usuarios/{userId}/pedidos?estado=',          op: 'Query',   cache: false, ttl: '—',     key: '—',                 inv: '—' },
+  { id: 'AP6', endpoint: 'GET /usuarios/{userId}/pedidos?desde=&hasta=',    op: 'Query',   cache: false, ttl: '—',     key: '—',                 inv: '—' },
+];
+
+function showWelcome() {
+  activeId = null;
+  document.getElementById('main').classList.add('welcome-mode');
+  document.querySelectorAll('.ep-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('.home-btn')?.classList.add('active');
+
+  const rows = ACCESS_PATTERNS.map(ap => `
+    <tr>
+      <td class="ap-id">${ap.id}</td>
+      <td><span class="mono">${ap.endpoint}</span></td>
+      <td><span class="mono">${ap.op}</span></td>
+      <td>${ap.cache ? '<span class="ap-cache-yes">SÍ</span>' : '<span class="ap-cache-no">NO</span>'}</td>
+      <td>${ap.ttl === '—' ? '<span class="ap-dash">—</span>' : ap.ttl}</td>
+      <td>${ap.key === '—' ? '<span class="ap-dash">—</span>' : `<span class="mono">${ap.key}</span>`}</td>
+      <td>${ap.inv === '—' ? '<span class="ap-dash">—</span>' : ap.inv}</td>
+    </tr>
+  `).join('');
+
+  document.getElementById('form-panel').innerHTML = `
+    <div class="welcome">
+      <div class="welcome-title">Patrones de acceso y decisión de caché</div>
+      <div class="welcome-sub">
+        Single Table Design sobre <b style="color:var(--accent2)">mi_mercado</b> (DynamoDB) +
+        cache-aside con Redis. Cada patrón de acceso (AP) resuelve una consulta de la UI
+        usando claves jerárquicas <span class="mono">pk</span> / <span class="mono">sk</span>.
+      </div>
+
+      <div class="welcome-card">
+        <b>Patrón aplicado: Cache-Aside</b> (lazy loading)
+        <ol>
+          <li>Lambda consulta primero Redis con la clave de la entidad.</li>
+          <li>Si <b style="color:#60a5fa">HIT</b> → responde con el valor cacheado.</li>
+          <li>Si <b style="color:#fb923c">MISS</b> → consulta DynamoDB, guarda en Redis con TTL y responde.</li>
+          <li>Cualquier escritura <b>invalida</b> la clave para evitar leer datos obsoletos.</li>
+        </ol>
+      </div>
+
+      <div class="welcome-section-title">Tabla de decisión</div>
+      <table class="ap-table">
+        <thead>
+          <tr>
+            <th>AP</th>
+            <th>Endpoint</th>
+            <th>Op. Dynamo</th>
+            <th>¿Cache?</th>
+            <th>TTL</th>
+            <th>Clave Redis</th>
+            <th>Invalidación</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+
+      <div class="welcome-sub" style="margin-top: 18px;">
+        <b style="color:var(--accent2)">Por qué AP5 y AP6 no cachean:</b>
+        cada combinación de filtros generaría una clave distinta y una matriz de
+        invalidación impráctica. Para los volúmenes de un curso, va directo a DynamoDB.
+      </div>
+    </div>
+  `;
 }
 
 function renderForm(ep) {
@@ -752,6 +886,7 @@ function esc(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>
 function getBaseUrl() { return document.getElementById('base-url-input').value.replace(/\/$/, ''); }
 
 buildSidebar();
+showWelcome();
 </script>
 </body>
 </html>
