@@ -1,7 +1,7 @@
 import json
 from shared.db import dynamodb, TABLE_NAME
 from shared.utils import deserialize_item, sanitize, generate_id, today, ok, err, cors_preflight
-from shared.cache import cache_get, cache_set
+from shared.cache import cache_get, cache_set, cache_delete
 
 
 def lambda_handler(event, context):
@@ -81,6 +81,8 @@ def _crear_pedido(event):
         },
     )
 
+    cache_delete(f'pedidos:{user_id}')
+
     result = {
         'orderId': order_id,
         'userId':  user_id,
@@ -128,6 +130,16 @@ def _listar_pedidos(user_id, qs):
     desde  = qs.get('desde')
     hasta  = qs.get('hasta')
 
+    # Solo cacheamos el listado sin filtros (caso más frecuente: "Mis Pedidos").
+    # Las consultas con filtros van directo a DynamoDB.
+    use_cache = not (estado or desde or hasta)
+    cache_key = f'pedidos:{user_id}'
+
+    if use_cache:
+        cached = cache_get(cache_key)
+        if cached is not None:
+            return ok(cached, headers={'X-Cache': 'HIT'})
+
     if estado:
         response = dynamodb.query(
             TableName=TABLE_NAME,
@@ -174,4 +186,8 @@ def _listar_pedidos(user_id, qs):
             'estado':  est,
             'total':   item.get('total', 0),
         })
+
+    if use_cache:
+        cache_set(cache_key, result)
+        return ok(result, headers={'X-Cache': 'MISS'})
     return ok(result)
